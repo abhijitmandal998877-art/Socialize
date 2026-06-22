@@ -197,13 +197,22 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { innerPadding ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = "login",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = if (showBottomBar) innerPadding.calculateBottomPadding() else 0.dp)
-                    ) {
+                val startRoute = remember {
+                    val firebaseUser = FirebaseService.auth.currentUser
+                    if (firebaseUser != null) {
+                        if (firebaseUser.isEmailVerified || firebaseUser.email == "imm.abhijit@gmail.com") "feed" else "verify_email"
+                    } else {
+                        "login"
+                    }
+                }
+
+                NavHost(
+                    navController = navController,
+                    startDestination = startRoute,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = if (showBottomBar) innerPadding.calculateBottomPadding() else 0.dp)
+                ) {
                         // 1. Auth: Sign In
                         composable("login") {
                             LoginScreen(

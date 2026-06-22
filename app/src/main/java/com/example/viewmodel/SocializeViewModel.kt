@@ -83,6 +83,23 @@ class SocializeViewModel : ViewModel() {
                     _isEmailVerified.value = true // Admin bypass
                 }
 
+                // Pre-seed temporary user so the UI is NEVER stuck while waiting for Firestore query
+                if (_currentUserState.value == null) {
+                    val emailVal = firebaseUser.email ?: ""
+                    val emailPrefix = emailVal.split("@").firstOrNull() ?: "user"
+                    val cleanUsername = emailPrefix.replace(".", "").replace("_", "").lowercase() + "_" + uid.takeLast(4).lowercase()
+                    _currentUserState.value = User(
+                        id = uid,
+                        name = firebaseUser.displayName ?: emailPrefix.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
+                        username = cleanUsername,
+                        mobile = "",
+                        email = emailVal,
+                        bio = "Hello! I am on Socialize 👋",
+                        profilePic = "avatar_1",
+                        role = if (emailVal == "imm.abhijit@gmail.com") "admin" else "user"
+                    )
+                }
+
                 observeCurrentUser(uid)
                 startRealTimeListeners(uid)
             } else {
@@ -183,6 +200,22 @@ class SocializeViewModel : ViewModel() {
                 val fbUser = authResult.user
                 if (fbUser != null) {
                     _isEmailVerified.value = fbUser.isEmailVerified
+                    
+                    // Pre-populate userState immediately to trigger redirection in LaunchEffects without waiting for Firestore
+                    val emailVal = fbUser.email ?: ""
+                    val emailPrefix = emailVal.split("@").firstOrNull() ?: "user"
+                    val cleanUsername = emailPrefix.replace(".", "").replace("_", "").lowercase() + "_" + fbUser.uid.takeLast(4).lowercase()
+                    _currentUserState.value = User(
+                        id = fbUser.uid,
+                        name = fbUser.displayName ?: emailPrefix.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
+                        username = cleanUsername,
+                        mobile = "",
+                        email = emailVal,
+                        bio = "Hello! I am on Socialize 👋",
+                        profilePic = "avatar_1",
+                        role = if (emailVal == "imm.abhijit@gmail.com") "admin" else "user"
+                    )
+                    
                     observeCurrentUser(fbUser.uid)
                     startRealTimeListeners(fbUser.uid)
                 }
@@ -204,6 +237,7 @@ class SocializeViewModel : ViewModel() {
             profilePic = "avatar_5",
             role = "admin"
         )
+        _currentUserState.value = adminUser
         db.collection("users").document(uid).set(adminUser)
     }
 
@@ -246,6 +280,8 @@ class SocializeViewModel : ViewModel() {
                             profilePic = "avatar_1",
                             role = if (email.trim() == "imm.abhijit@gmail.com") "admin" else "user"
                         )
+                        
+                        _currentUserState.value = newUser
                         
                         // Save in database
                         db.collection("users").document(uid).set(newUser)
@@ -300,14 +336,14 @@ class SocializeViewModel : ViewModel() {
                         _currentUserState.value = user
                         Log.d(TAG, "Current user document updated: ${user?.username}")
                     } else {
-                        // Document doesn't exist. Let's auto-create one for this authenticated user!
+                        // Document doesn't exist. Let's provide a fallback locally, but DO NOT run .set() in Firestore to avoid overwriting during registration.
                         val firebaseUser = auth.currentUser
                         if (firebaseUser != null && firebaseUser.uid == uid) {
                             val emailVal = firebaseUser.email ?: ""
                             val emailPrefix = emailVal.split("@").firstOrNull() ?: "user"
                             val cleanUsername = emailPrefix.replace(".", "").replace("_", "").lowercase() + "_" + uid.takeLast(4).lowercase()
                             val nameVal = firebaseUser.displayName ?: emailPrefix.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-                            val newUser = User(
+                            val fallbackUser = User(
                                 id = uid,
                                 name = nameVal,
                                 username = cleanUsername,
@@ -317,15 +353,9 @@ class SocializeViewModel : ViewModel() {
                                 profilePic = "avatar_1",
                                 role = if (emailVal == "imm.abhijit@gmail.com") "admin" else "user"
                             )
-                            db.collection("users").document(uid).set(newUser)
-                                .addOnSuccessListener {
-                                    Log.d(TAG, "Auto-created missing user doc for $uid")
-                                }
-                                .addOnFailureListener { e ->
-                                    Log.e(TAG, "Failed to auto-create user doc", e)
-                                    // Fallback locally as well
-                                    _currentUserState.value = newUser
-                                }
+                            if (_currentUserState.value == null) {
+                                _currentUserState.value = fallbackUser
+                            }
                         }
                     }
                 }

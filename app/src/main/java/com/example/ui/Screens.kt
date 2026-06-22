@@ -180,6 +180,12 @@ fun LoginScreen(
                             onSuccess = {
                                 loading = false
                                 Toast.makeText(context, "Log in successful!", Toast.LENGTH_SHORT).show()
+                                val isUserAdmin = email.trim().lowercase() == "imm.abhijit@gmail.com"
+                                if (isUserAdmin || viewModel.isEmailVerified.value) {
+                                    onNavigateToFeed()
+                                } else {
+                                    onNavigateToVerify()
+                                }
                             },
                             onError = { err ->
                                 loading = false
@@ -458,6 +464,7 @@ fun RegisterScreen(
                                 onSuccess = {
                                     loading = false
                                     Toast.makeText(context, "Registration Saved. Verification email sent!", Toast.LENGTH_LONG).show()
+                                    onNavigateToVerify()
                                 },
                                 onError = { err ->
                                     loading = false
@@ -569,6 +576,7 @@ fun VerifyEmailScreen(
                             checking = false
                             if (verified) {
                                 Toast.makeText(context, "Email confirmed! Welcome to Socialize.", Toast.LENGTH_SHORT).show()
+                                onNavigateToFeed()
                             } else {
                                 Toast.makeText(context, "Verification not completed yet. Please tap the link in Gmail.", Toast.LENGTH_LONG).show()
                             }
