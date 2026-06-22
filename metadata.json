@@ -1,0 +1,6 @@
+{
+  "name": "Socialize",
+  "description": "A sleek social app where users share text posts, interact through likes, comments and messaging.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

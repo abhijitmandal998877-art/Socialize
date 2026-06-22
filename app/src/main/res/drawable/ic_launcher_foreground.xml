@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Bubble 1: Large primary bubble with a linear gradient -->
+    <path
+        android:pathData="M 30,30 C 30,22 38,15 48,15 L 72,15 C 82,15 90,22 90,30 L 90,50 C 90,58 82,65 72,65 L 56,65 L 44,77 L 44,65 C 30,65 30,58 30,50 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="30"
+                android:startY="15"
+                android:endX="90"
+                android:endY="65">
+                <item android:offset="0.0" android:color="#38BDF8" />
+                <item android:offset="1.0" android:color="#2563EB" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Bubble 2: Smaller overlapping bubble at the bottom-left -->
+    <path
+        android:pathData="M 18,52 C 18,46 23,41 30,41 L 46,41 C 53,41 58,46 58,52 L 58,66 C 58,72 53,77 46,77 L 36,77 L 26,85 L 26,77 C 18,77 18,72 18,66 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="18"
+                android:startY="41"
+                android:endX="58"
+                android:endY="77">
+                <item android:offset="0.0" android:color="#F43F5E" />
+                <item android:offset="1.0" android:color="#BE123C" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Socialize letter S icon styling in main bubble -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 66,33 C 66,33 58,30 54,34 C 50,38 64,40 60,47 C 56,54 48,50 48,50" />
+</vector>
