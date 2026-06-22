@@ -69,7 +69,7 @@ fun LoginScreen(
     val currentUser by viewModel.currentUserState.collectAsStateWithLifecycle()
     val isVerified by viewModel.isEmailVerified.collectAsStateWithLifecycle()
 
-    LaunchedEffect(currentUser) {
+    LaunchedEffect(currentUser, isVerified) {
         val user = currentUser
         if (user != null) {
             if (user.role == "admin" || isVerified) {
@@ -565,12 +565,13 @@ fun VerifyEmailScreen(
                 Button(
                     onClick = {
                         checking = true
-                        viewModel.checkEmailVerificationStatus()
-                        checking = false
-                        if (isVerified) {
-                            Toast.makeText(context, "Email confirmed! Welcome to Socialize.", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, "Verification not completed yet. Please tap the link in Gmail.", Toast.LENGTH_LONG).show()
+                        viewModel.checkEmailVerificationStatus { verified ->
+                            checking = false
+                            if (verified) {
+                                Toast.makeText(context, "Email confirmed! Welcome to Socialize.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Verification not completed yet. Please tap the link in Gmail.", Toast.LENGTH_LONG).show()
+                            }
                         }
                     },
                     modifier = Modifier

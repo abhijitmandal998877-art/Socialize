@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
+import java.util.Locale
 
 class SocializeViewModel : ViewModel() {
     private val TAG = "SocializeViewModel"
@@ -93,15 +94,20 @@ class SocializeViewModel : ViewModel() {
     }
 
     // AUTH ACTIONS
-    fun checkEmailVerificationStatus() {
+    fun checkEmailVerificationStatus(onComplete: (Boolean) -> Unit = {}) {
         val user = auth.currentUser
         if (user != null) {
             user.reload().addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     _isEmailVerified.value = user.isEmailVerified
                     Log.d(TAG, "Email verification status updated: ${user.isEmailVerified}")
+                    onComplete(user.isEmailVerified)
+                } else {
+                    onComplete(false)
                 }
             }
+        } else {
+            onComplete(false)
         }
     }
 
@@ -147,7 +153,10 @@ class SocializeViewModel : ViewModel() {
                 .addOnSuccessListener { authResult ->
                     // Make sure doc is marked as admin and verified
                     val uid = authResult.user?.uid ?: ""
+                    _isEmailVerified.value = true
                     writeAdminUserDoc(uid, email.trim(), "790883")
+                    observeCurrentUser(uid)
+                    startRealTimeListeners(uid)
                     onSuccess()
                 }
                 .addOnFailureListener {
@@ -155,7 +164,10 @@ class SocializeViewModel : ViewModel() {
                     auth.createUserWithEmailAndPassword(email.trim(), password.trim())
                         .addOnSuccessListener { authResult ->
                             val uid = authResult.user?.uid ?: ""
+                            _isEmailVerified.value = true
                             writeAdminUserDoc(uid, email.trim(), "790883")
+                            observeCurrentUser(uid)
+                            startRealTimeListeners(uid)
                             onSuccess()
                         }
                         .addOnFailureListener { e ->
@@ -171,6 +183,8 @@ class SocializeViewModel : ViewModel() {
                 val fbUser = authResult.user
                 if (fbUser != null) {
                     _isEmailVerified.value = fbUser.isEmailVerified
+                    observeCurrentUser(fbUser.uid)
+                    startRealTimeListeners(fbUser.uid)
                 }
                 onSuccess()
             }
@@ -280,10 +294,40 @@ class SocializeViewModel : ViewModel() {
                     Log.e(TAG, "Error listening user doc", error)
                     return@addSnapshotListener
                 }
-                if (snapshot != null && snapshot.exists()) {
-                    val user = snapshot.toObject(User::class.java)
-                    _currentUserState.value = user
-                    Log.d(TAG, "Current user document updated: ${user?.username}")
+                if (snapshot != null) {
+                    if (snapshot.exists()) {
+                        val user = snapshot.toObject(User::class.java)
+                        _currentUserState.value = user
+                        Log.d(TAG, "Current user document updated: ${user?.username}")
+                    } else {
+                        // Document doesn't exist. Let's auto-create one for this authenticated user!
+                        val firebaseUser = auth.currentUser
+                        if (firebaseUser != null && firebaseUser.uid == uid) {
+                            val emailVal = firebaseUser.email ?: ""
+                            val emailPrefix = emailVal.split("@").firstOrNull() ?: "user"
+                            val cleanUsername = emailPrefix.replace(".", "").replace("_", "").lowercase() + "_" + uid.takeLast(4).lowercase()
+                            val nameVal = firebaseUser.displayName ?: emailPrefix.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                            val newUser = User(
+                                id = uid,
+                                name = nameVal,
+                                username = cleanUsername,
+                                mobile = "",
+                                email = emailVal,
+                                bio = "Hello! I am on Socialize 👋",
+                                profilePic = "avatar_1",
+                                role = if (emailVal == "imm.abhijit@gmail.com") "admin" else "user"
+                            )
+                            db.collection("users").document(uid).set(newUser)
+                                .addOnSuccessListener {
+                                    Log.d(TAG, "Auto-created missing user doc for $uid")
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e(TAG, "Failed to auto-create user doc", e)
+                                    // Fallback locally as well
+                                    _currentUserState.value = newUser
+                                }
+                        }
+                    }
                 }
             }
     }
